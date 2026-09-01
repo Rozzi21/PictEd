@@ -1,3 +1,4 @@
+import os
 import sys
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -7,6 +8,13 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QPixmap, QImage, QPainter, QPen, QColor, QWheelEvent
 from PySide6.QtCore import Qt, QRect, QPoint, QThread, Signal
 from PIL import Image, ImageEnhance, ImageFilter
+
+if getattr(sys, 'frozen', False):
+    base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    models_dir = os.path.join(base_dir, 'models')
+    if os.path.exists(models_dir):
+        os.environ['U2NET_HOME'] = models_dir
+
 from rembg import remove
 
 STYLESHEET = """

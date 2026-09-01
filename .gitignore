@@ -1,0 +1,22 @@
+# Python / Virtual Environment
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+
+# Build & Packaging outputs
+build/
+dist/
+build_deb/
+*.spec
+*.deb
+
+# Downloaded AI Models
+models/
+
+# IDE / System
+.vscode/
+.idea/
+.DS_Store
