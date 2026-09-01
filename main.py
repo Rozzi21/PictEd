@@ -438,6 +438,7 @@ class PhotoEditor(QMainWindow):
         progress.setWindowModality(Qt.WindowModal)
         progress.setCancelButton(None)
         progress.show()
+        QApplication.processEvents()
 
         self.thread = RemoveBgThread(self.pil_image)
 
@@ -453,6 +454,7 @@ class PhotoEditor(QMainWindow):
 
         self.thread.finished_signal.connect(on_finished)
         self.thread.error_signal.connect(on_error)
+        self.thread.finished.connect(self.thread.deleteLater)
         self.thread.start()
 
     def reset_image(self):
