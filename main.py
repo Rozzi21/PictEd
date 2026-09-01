@@ -9,6 +9,114 @@ from PySide6.QtCore import Qt, QRect, QPoint, QThread, Signal
 from PIL import Image, ImageEnhance, ImageFilter
 from rembg import remove
 
+STYLESHEET = """
+QMainWindow {
+    background-color: #0b1326;
+}
+
+QWidget {
+    font-family: 'Inter', sans-serif;
+    color: #dae2fd;
+}
+
+QFrame#sidebar {
+    background-color: #131b2e;
+    border-right: 1px solid #222a3d;
+}
+
+QLabel#sidebar_header {
+    font-size: 11px;
+    font-weight: 600;
+    color: #918fa1;
+    letter-spacing: 1px;
+    margin-top: 12px;
+    margin-bottom: 4px;
+}
+
+QPushButton {
+    background-color: #171f33;
+    color: #dae2fd;
+    border: 1px solid #2d3449;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+}
+
+QPushButton:hover {
+    background-color: #222a3d;
+    border-color: #464555;
+}
+
+QPushButton:pressed {
+    background-color: #2d3449;
+}
+
+QPushButton#btn_primary {
+    background-color: #4f46e5;
+    color: #ffffff;
+    border: none;
+    font-weight: 600;
+}
+
+QPushButton#btn_primary:hover {
+    background-color: #c3c0ff;
+    color: #1d00a5;
+}
+
+QPushButton#btn_accent {
+    background-color: #00a2e6;
+    color: #00344d;
+    border: none;
+    font-weight: 600;
+}
+
+QPushButton#btn_accent:hover {
+    background-color: #89ceff;
+}
+
+QPushButton#btn_danger {
+    background-color: #93000a;
+    color: #ffdad6;
+    border: 1px solid #ffb4ab;
+}
+
+QPushButton#btn_danger:hover {
+    background-color: #ffb4ab;
+    color: #690005;
+}
+
+QScrollArea {
+    background-color: #060e20;
+    border: none;
+}
+
+QScrollArea > QWidget > QWidget {
+    background-color: #060e20;
+}
+
+QLabel#info_label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #918fa1;
+    background-color: #060e20;
+    border: 1px solid #222a3d;
+    border-radius: 8px;
+    padding: 10px;
+}
+
+QProgressDialog {
+    background-color: #131b2e;
+    color: #dae2fd;
+}
+
+QMessageBox {
+    background-color: #131b2e;
+    color: #dae2fd;
+}
+"""
+
 class RemoveBgThread(QThread):
     finished_signal = Signal(object)
     error_signal = Signal(str)
@@ -62,10 +170,10 @@ class ImageCanvas(QLabel):
         painter = QPainter(self)
         if self.is_selecting or not self.crop_rect.isEmpty():
             current_rect = QRect(self.start_point, self.end_point).normalized() if self.is_selecting else self.crop_rect
-            pen = QPen(QColor(0, 120, 215), 2, Qt.DashLine)
+            pen = QPen(QColor("#c3c0ff"), 2, Qt.DashLine)
             painter.setPen(pen)
             painter.drawRect(current_rect)
-            painter.fillRect(current_rect, QColor(0, 120, 215, 40))
+            painter.fillRect(current_rect, QColor(195, 192, 255, 40))
 
     def reset_selection(self):
         self.crop_rect = QRect()
@@ -76,7 +184,7 @@ class ImageCanvas(QLabel):
 class PhotoEditor(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Photo Editor - Crop, 4K, Grayscale, Enhance & Zoom")
+        self.setWindowTitle("Lumina Edit - Photo Editor")
         self.resize(1100, 750)
 
         self.pil_image = None
@@ -89,14 +197,30 @@ class PhotoEditor(QMainWindow):
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         main_layout = QHBoxLayout(main_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
 
         sidebar = QFrame()
-        sidebar.setFixedWidth(240)
+        sidebar.setObjectName("sidebar")
+        sidebar.setFixedWidth(280)
         sidebar_layout = QVBoxLayout(sidebar)
         sidebar_layout.setAlignment(Qt.AlignTop)
+        sidebar_layout.setContentsMargins(16, 16, 16, 16)
+        sidebar_layout.setSpacing(8)
+
+        lbl_file = QLabel("FILE")
+        lbl_file.setObjectName("sidebar_header")
 
         btn_open = QPushButton("Open Image")
+        btn_open.setObjectName("btn_primary")
         btn_open.clicked.connect(self.open_image)
+
+        btn_save = QPushButton("Save Image")
+        btn_save.setObjectName("btn_accent")
+        btn_save.clicked.connect(self.save_image)
+
+        lbl_tools = QLabel("TOOLS & EDITS")
+        lbl_tools.setObjectName("sidebar_header")
 
         btn_crop = QPushButton("Crop Selection")
         btn_crop.clicked.connect(self.crop_image)
@@ -113,8 +237,11 @@ class PhotoEditor(QMainWindow):
         btn_remove_bg = QPushButton("Remove Background")
         btn_remove_bg.clicked.connect(self.remove_background)
 
-        zoom_label = QLabel("Zoom:")
+        lbl_view = QLabel("VIEW & VIEWPORT")
+        lbl_view.setObjectName("sidebar_header")
+
         zoom_btn_layout = QHBoxLayout()
+        zoom_btn_layout.setSpacing(8)
         btn_zoom_in = QPushButton("+ Zoom In")
         btn_zoom_in.clicked.connect(self.zoom_in)
         btn_zoom_out = QPushButton("- Zoom Out")
@@ -125,28 +252,35 @@ class PhotoEditor(QMainWindow):
         btn_zoom_reset = QPushButton("Reset Zoom (100%)")
         btn_zoom_reset.clicked.connect(self.reset_zoom)
 
+        lbl_history = QLabel("RESET")
+        lbl_history.setObjectName("sidebar_header")
+
         btn_reset = QPushButton("Reset Original")
+        btn_reset.setObjectName("btn_danger")
         btn_reset.clicked.connect(self.reset_image)
 
-        btn_save = QPushButton("Save Image")
-        btn_save.clicked.connect(self.save_image)
-
         self.info_label = QLabel("Dimension: -\nZoom: 100%")
+        self.info_label.setObjectName("info_label")
 
+        sidebar_layout.addWidget(lbl_file)
         sidebar_layout.addWidget(btn_open)
+        sidebar_layout.addWidget(btn_save)
+
+        sidebar_layout.addWidget(lbl_tools)
         sidebar_layout.addWidget(btn_crop)
         sidebar_layout.addWidget(btn_upscale)
         sidebar_layout.addWidget(btn_enhance)
         sidebar_layout.addWidget(btn_grayscale)
         sidebar_layout.addWidget(btn_remove_bg)
-        sidebar_layout.addSpacing(10)
-        sidebar_layout.addWidget(zoom_label)
+
+        sidebar_layout.addWidget(lbl_view)
         sidebar_layout.addLayout(zoom_btn_layout)
         sidebar_layout.addWidget(btn_zoom_reset)
-        sidebar_layout.addSpacing(10)
+
+        sidebar_layout.addWidget(lbl_history)
         sidebar_layout.addWidget(btn_reset)
-        sidebar_layout.addWidget(btn_save)
-        sidebar_layout.addSpacing(20)
+
+        sidebar_layout.addSpacing(16)
         sidebar_layout.addWidget(self.info_label)
 
         self.canvas = ImageCanvas()
@@ -342,6 +476,7 @@ class PhotoEditor(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    app.setStyleSheet(STYLESHEET)
     window = PhotoEditor()
     window.show()
     sys.exit(app.exec())
