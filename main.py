@@ -233,8 +233,20 @@ class PhotoEditor(QMainWindow):
         btn_crop = QPushButton("Crop Selection")
         btn_crop.clicked.connect(self.crop_image)
 
-        btn_upscale = QPushButton("Upscale to 4K")
-        btn_upscale.clicked.connect(self.upscale_4k)
+        btn_flip_h = QPushButton("Flip Horizontal (Mirror)")
+        btn_flip_h.clicked.connect(self.flip_horizontal)
+
+        btn_flip_v = QPushButton("Flip Vertical")
+        btn_flip_v.clicked.connect(self.flip_vertical)
+
+        upscale_btn_layout = QHBoxLayout()
+        upscale_btn_layout.setSpacing(8)
+        btn_upscale_2x = QPushButton("Upscale 2x")
+        btn_upscale_2x.clicked.connect(self.upscale_2x)
+        btn_upscale_4x = QPushButton("Upscale 4x")
+        btn_upscale_4x.clicked.connect(self.upscale_4x)
+        upscale_btn_layout.addWidget(btn_upscale_2x)
+        upscale_btn_layout.addWidget(btn_upscale_4x)
 
         btn_enhance = QPushButton("Enhance Quality")
         btn_enhance.clicked.connect(self.enhance_quality)
@@ -276,7 +288,9 @@ class PhotoEditor(QMainWindow):
 
         sidebar_layout.addWidget(lbl_tools)
         sidebar_layout.addWidget(btn_crop)
-        sidebar_layout.addWidget(btn_upscale)
+        sidebar_layout.addWidget(btn_flip_h)
+        sidebar_layout.addWidget(btn_flip_v)
+        sidebar_layout.addLayout(upscale_btn_layout)
         sidebar_layout.addWidget(btn_enhance)
         sidebar_layout.addWidget(btn_grayscale)
         sidebar_layout.addWidget(btn_remove_bg)
@@ -375,20 +389,40 @@ class PhotoEditor(QMainWindow):
         self.pil_image = self.pil_image.crop((left, top, right, bottom))
         self.update_display()
 
-    def upscale_4k(self):
+    def flip_horizontal(self):
+        if not self.pil_image:
+            QMessageBox.warning(self, "Warning", "No image loaded!")
+            return
+        self.pil_image = self.pil_image.transpose(Image.FLIP_LEFT_RIGHT)
+        self.update_display()
+
+    def flip_vertical(self):
+        if not self.pil_image:
+            QMessageBox.warning(self, "Warning", "No image loaded!")
+            return
+        self.pil_image = self.pil_image.transpose(Image.FLIP_TOP_BOTTOM)
+        self.update_display()
+
+    def upscale_image(self, factor: float):
         if not self.pil_image:
             QMessageBox.warning(self, "Warning", "No image loaded!")
             return
 
-        target_width = 3840
         w, h = self.pil_image.size
-        if w == 0:
+        if w == 0 or h == 0:
             return
 
-        target_height = int(h * (target_width / w))
+        target_width = int(w * factor)
+        target_height = int(h * factor)
         self.pil_image = self.pil_image.resize((target_width, target_height), Image.Resampling.LANCZOS)
         self.update_display()
-        QMessageBox.information(self, "Upscale 4K", f"Resized to {target_width}x{target_height}")
+        QMessageBox.information(self, f"Upscale {factor:g}x", f"Resized to {target_width}x{target_height}")
+
+    def upscale_2x(self):
+        self.upscale_image(2.0)
+
+    def upscale_4x(self):
+        self.upscale_image(4.0)
 
     def enhance_quality(self):
         if not self.pil_image:
