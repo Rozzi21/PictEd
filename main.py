@@ -192,7 +192,7 @@ class ImageCanvas(QLabel):
 class PhotoEditor(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Lumina Edit - Photo Editor")
+        self.setWindowTitle("PictEd")
         self.resize(1100, 750)
 
         self.pil_image = None
@@ -520,6 +520,7 @@ class PhotoEditor(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    app.setApplicationName("PictEd")
     app.setStyleSheet(STYLESHEET)
     window = PhotoEditor()
     window.show()
