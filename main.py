@@ -1,5 +1,6 @@
 import os
 import sys
+import traceback
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QFileDialog, QLabel, QMessageBox, QScrollArea, QFrame,
@@ -9,13 +10,13 @@ from PySide6.QtGui import QPixmap, QImage, QPainter, QPen, QColor, QWheelEvent
 from PySide6.QtCore import Qt, QRect, QPoint, QThread, Signal
 from PIL import Image, ImageEnhance, ImageFilter
 
-if getattr(sys, 'frozen', False):
-    base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
-    models_dir = os.path.join(base_dir, 'models')
-    if os.path.exists(models_dir):
-        os.environ['U2NET_HOME'] = models_dir
+base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+models_dir = os.path.join(base_dir, 'models')
+if os.path.exists(models_dir):
+    os.environ['U2NET_HOME'] = models_dir
 
-from rembg import remove
+import onnxruntime as ort
+from rembg import new_session, remove
 
 STYLESHEET = """
 QMainWindow {
@@ -128,6 +129,9 @@ QMessageBox {
 class RemoveBgThread(QThread):
     finished_signal = Signal(object)
     error_signal = Signal(str)
+    status_signal = Signal(str)
+
+    _session = None
 
     def __init__(self, pil_image):
         super().__init__()
@@ -135,10 +139,23 @@ class RemoveBgThread(QThread):
 
     def run(self):
         try:
-            result = remove(self.pil_image)
+            if RemoveBgThread._session is None:
+                self.status_signal.emit("Loading AI model...")
+                session_options = ort.SessionOptions()
+                session_options.intra_op_num_threads = min(4, max(1, (os.cpu_count() or 2) - 1))
+                session_options.inter_op_num_threads = 1
+                session_options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+                RemoveBgThread._session = new_session(
+                    "bria-rmbg",
+                    sess_opts=session_options,
+                    providers=["CPUExecutionProvider"],
+                )
+
+            self.status_signal.emit("Removing background...")
+            result = remove(self.pil_image, session=RemoveBgThread._session)
             self.finished_signal.emit(result)
-        except Exception as e:
-            self.error_signal.emit(str(e))
+        except Exception:
+            self.error_signal.emit(traceback.format_exc())
 
 class ImageCanvas(QLabel):
     def __init__(self, parent=None):
@@ -198,6 +215,8 @@ class PhotoEditor(QMainWindow):
         self.pil_image = None
         self.original_image = None
         self.zoom_factor = 1.0
+        self.remove_bg_thread = None
+        self.remove_bg_progress = None
 
         self.init_ui()
 
@@ -254,8 +273,8 @@ class PhotoEditor(QMainWindow):
         btn_grayscale = QPushButton("Grayscale")
         btn_grayscale.clicked.connect(self.to_grayscale)
 
-        btn_remove_bg = QPushButton("Remove Background")
-        btn_remove_bg.clicked.connect(self.remove_background)
+        self.btn_remove_bg = QPushButton("Remove Background")
+        self.btn_remove_bg.clicked.connect(self.remove_background)
 
         lbl_view = QLabel("VIEW & VIEWPORT")
         lbl_view.setObjectName("sidebar_header")
@@ -293,7 +312,7 @@ class PhotoEditor(QMainWindow):
         sidebar_layout.addLayout(upscale_btn_layout)
         sidebar_layout.addWidget(btn_enhance)
         sidebar_layout.addWidget(btn_grayscale)
-        sidebar_layout.addWidget(btn_remove_bg)
+        sidebar_layout.addWidget(self.btn_remove_bg)
 
         sidebar_layout.addWidget(lbl_view)
         sidebar_layout.addLayout(zoom_btn_layout)
@@ -475,29 +494,53 @@ class PhotoEditor(QMainWindow):
             QMessageBox.warning(self, "Warning", "No image loaded!")
             return
 
-        progress = QProgressDialog("Removing background...", None, 0, 0, self)
-        progress.setWindowTitle("Please Wait")
-        progress.setWindowModality(Qt.WindowModal)
-        progress.setCancelButton(None)
-        progress.show()
-        QApplication.processEvents()
+        if self.remove_bg_thread and self.remove_bg_thread.isRunning():
+            return
 
-        self.thread = RemoveBgThread(self.pil_image)
+        self.btn_remove_bg.setEnabled(False)
+        self.remove_bg_progress = QProgressDialog(
+            "Preparing background removal...", None, 0, 0, self
+        )
+        self.remove_bg_progress.setWindowTitle("PictEd")
+        self.remove_bg_progress.setWindowModality(Qt.NonModal)
+        self.remove_bg_progress.setCancelButton(None)
+        self.remove_bg_progress.setMinimumDuration(0)
+        self.remove_bg_progress.show()
+
+        self.remove_bg_thread = RemoveBgThread(self.pil_image.copy())
 
         def on_finished(result_img):
-            progress.close()
+            self.remove_bg_progress.close()
             self.pil_image = result_img
             self.update_display()
             QMessageBox.information(self, "Remove Background", "Background removed successfully!")
 
         def on_error(err_msg):
-            progress.close()
+            self.remove_bg_progress.close()
             QMessageBox.critical(self, "Error", f"Failed to remove background: {err_msg}")
 
-        self.thread.finished_signal.connect(on_finished)
-        self.thread.error_signal.connect(on_error)
-        self.thread.finished.connect(self.thread.deleteLater)
-        self.thread.start()
+        def on_thread_finished():
+            self.btn_remove_bg.setEnabled(True)
+            self.remove_bg_thread.deleteLater()
+            self.remove_bg_thread = None
+            self.remove_bg_progress = None
+
+        self.remove_bg_thread.status_signal.connect(self.remove_bg_progress.setLabelText)
+        self.remove_bg_thread.finished_signal.connect(on_finished)
+        self.remove_bg_thread.error_signal.connect(on_error)
+        self.remove_bg_thread.finished.connect(on_thread_finished)
+        self.remove_bg_thread.start()
+
+    def closeEvent(self, event):
+        if self.remove_bg_thread and self.remove_bg_thread.isRunning():
+            QMessageBox.warning(
+                self,
+                "Background Removal in Progress",
+                "Wait until background removal finishes before closing PictEd.",
+            )
+            event.ignore()
+            return
+        event.accept()
 
     def reset_image(self):
         if not self.original_image:
