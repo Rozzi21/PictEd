@@ -20,109 +20,255 @@ from rembg import new_session, remove
 
 STYLESHEET = """
 QMainWindow {
-    background-color: #0b1326;
+    background-color: #0a0f1e;
 }
 
 QWidget {
-    font-family: 'Inter', sans-serif;
-    color: #dae2fd;
+    font-family: 'Segoe UI', 'Inter', sans-serif;
+    color: #dbe4ff;
+    font-size: 13px;
 }
+
+/* ---------- Sidebar ---------- */
 
 QFrame#sidebar {
-    background-color: #131b2e;
-    border-right: 1px solid #222a3d;
+    background-color: #101828;
+    border-right: 1px solid #1f2a44;
 }
 
-QLabel#sidebar_header {
+QLabel#app_logo {
+    font-size: 22px;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+QLabel#app_subtitle {
     font-size: 11px;
-    font-weight: 600;
-    color: #918fa1;
-    letter-spacing: 1px;
-    margin-top: 12px;
+    color: #6b7a9d;
     margin-bottom: 4px;
 }
 
+QFrame#divider {
+    background-color: #1f2a44;
+    max-height: 1px;
+    margin: 6px 0px;
+}
+
+QLabel#sidebar_header {
+    font-size: 10px;
+    font-weight: 700;
+    color: #5f7199;
+    letter-spacing: 2px;
+    margin-top: 14px;
+    margin-bottom: 2px;
+}
+
+/* ---------- Buttons ---------- */
+
 QPushButton {
-    background-color: #171f33;
-    color: #dae2fd;
-    border: 1px solid #2d3449;
-    border-radius: 8px;
-    padding: 8px 12px;
+    background-color: #182338;
+    color: #dbe4ff;
+    border: 1px solid #26334f;
+    border-radius: 10px;
+    padding: 9px 14px;
     font-size: 13px;
     font-weight: 500;
     text-align: left;
 }
 
 QPushButton:hover {
-    background-color: #222a3d;
-    border-color: #464555;
+    background-color: #22314f;
+    border-color: #3d5a99;
 }
 
 QPushButton:pressed {
-    background-color: #2d3449;
+    background-color: #141d31;
+    border-color: #26334f;
+}
+
+QPushButton:disabled {
+    background-color: #131b2c;
+    color: #4a5570;
+    border-color: #1c2436;
 }
 
 QPushButton#btn_primary {
-    background-color: #4f46e5;
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+        stop:0 #6366f1, stop:1 #4f46e5);
     color: #ffffff;
     border: none;
     font-weight: 600;
 }
 
 QPushButton#btn_primary:hover {
-    background-color: #c3c0ff;
-    color: #1d00a5;
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+        stop:0 #818cf8, stop:1 #6366f1);
+}
+
+QPushButton#btn_primary:pressed {
+    background-color: #4338ca;
 }
 
 QPushButton#btn_accent {
-    background-color: #00a2e6;
-    color: #00344d;
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+        stop:0 #22d3ee, stop:1 #0ea5e9);
+    color: #03293d;
     border: none;
     font-weight: 600;
 }
 
 QPushButton#btn_accent:hover {
-    background-color: #89ceff;
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+        stop:0 #67e8f9, stop:1 #38bdf8);
+}
+
+QPushButton#btn_accent:pressed {
+    background-color: #0284c7;
+    color: #ffffff;
 }
 
 QPushButton#btn_danger {
-    background-color: #93000a;
-    color: #ffdad6;
-    border: 1px solid #ffb4ab;
+    background-color: rgba(239, 68, 68, 0.12);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.45);
 }
 
 QPushButton#btn_danger:hover {
-    background-color: #ffb4ab;
-    color: #690005;
+    background-color: rgba(239, 68, 68, 0.28);
+    color: #fecaca;
+    border-color: #ef4444;
 }
 
+QPushButton#btn_danger:pressed {
+    background-color: #991b1b;
+    color: #ffffff;
+}
+
+/* ---------- Canvas area ---------- */
+
 QScrollArea {
-    background-color: #060e20;
+    background-color: #070c18;
     border: none;
 }
 
 QScrollArea > QWidget > QWidget {
-    background-color: #060e20;
+    background-color: #070c18;
 }
 
+QLabel#canvas {
+    color: #3d4a68;
+    font-size: 15px;
+}
+
+/* ---------- Scrollbars ---------- */
+
+QScrollBar:vertical {
+    background: transparent;
+    width: 10px;
+    margin: 4px 2px;
+}
+
+QScrollBar::handle:vertical {
+    background: #26334f;
+    border-radius: 4px;
+    min-height: 30px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #3b4a6b;
+}
+
+QScrollBar:horizontal {
+    background: transparent;
+    height: 10px;
+    margin: 2px 4px;
+}
+
+QScrollBar::handle:horizontal {
+    background: #26334f;
+    border-radius: 4px;
+    min-width: 30px;
+}
+
+QScrollBar::handle:horizontal:hover {
+    background: #3b4a6b;
+}
+
+QScrollBar::add-line, QScrollBar::sub-line {
+    height: 0px;
+    width: 0px;
+}
+
+QScrollBar::add-page, QScrollBar::sub-page {
+    background: transparent;
+}
+
+/* ---------- Info & status ---------- */
+
 QLabel#info_label {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'JetBrains Mono', 'Consolas', monospace;
     font-size: 11px;
-    color: #918fa1;
-    background-color: #060e20;
-    border: 1px solid #222a3d;
-    border-radius: 8px;
+    color: #8ea2c9;
+    background-color: #0c1426;
+    border: 1px solid #1f2a44;
+    border-radius: 10px;
     padding: 10px;
 }
 
+QStatusBar {
+    background-color: #101828;
+    color: #6b7a9d;
+    border-top: 1px solid #1f2a44;
+    font-size: 11px;
+    padding: 2px 8px;
+}
+
+QStatusBar::item {
+    border: none;
+}
+
+/* ---------- Dialogs & tooltips ---------- */
+
+QToolTip {
+    background-color: #182338;
+    color: #dbe4ff;
+    border: 1px solid #2d3a5c;
+    border-radius: 6px;
+    padding: 5px 8px;
+}
+
 QProgressDialog {
-    background-color: #131b2e;
-    color: #dae2fd;
+    background-color: #101828;
+    color: #dbe4ff;
+}
+
+QProgressBar {
+    background-color: #0c1426;
+    border: 1px solid #1f2a44;
+    border-radius: 6px;
+    text-align: center;
+    color: #dbe4ff;
+}
+
+QProgressBar::chunk {
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #6366f1, stop:1 #22d3ee);
+    border-radius: 5px;
 }
 
 QMessageBox {
-    background-color: #131b2e;
-    color: #dae2fd;
+    background-color: #101828;
+    color: #dbe4ff;
+}
+
+QMessageBox QPushButton {
+    min-width: 80px;
+    text-align: center;
+}
+
+QFileDialog {
+    background-color: #101828;
+    color: #dbe4ff;
 }
 """
 
@@ -209,8 +355,9 @@ class ImageCanvas(QLabel):
 class PhotoEditor(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("PictEd")
-        self.resize(1100, 750)
+        self.setWindowTitle("PictEd — Photo Editor")
+        self.resize(1200, 800)
+        self.setMinimumSize(900, 600)
 
         self.pil_image = None
         self.original_image = None
@@ -235,71 +382,94 @@ class PhotoEditor(QMainWindow):
         sidebar_layout.setContentsMargins(16, 16, 16, 16)
         sidebar_layout.setSpacing(8)
 
+        app_logo = QLabel("🎨 PictEd")
+        app_logo.setObjectName("app_logo")
+
+        app_subtitle = QLabel("Simple AI-powered photo editor")
+        app_subtitle.setObjectName("app_subtitle")
+
+        logo_divider = QFrame()
+        logo_divider.setObjectName("divider")
+
         lbl_file = QLabel("FILE")
         lbl_file.setObjectName("sidebar_header")
 
-        btn_open = QPushButton("Open Image")
+        btn_open = QPushButton("📂  Open Image")
         btn_open.setObjectName("btn_primary")
+        btn_open.setToolTip("Open an image file (PNG, JPG, BMP, WebP)")
         btn_open.clicked.connect(self.open_image)
 
-        btn_save = QPushButton("Save Image")
+        btn_save = QPushButton("💾  Save Image")
         btn_save.setObjectName("btn_accent")
+        btn_save.setToolTip("Save the edited image")
         btn_save.clicked.connect(self.save_image)
 
-        lbl_tools = QLabel("TOOLS & EDITS")
+        lbl_tools = QLabel("TOOLS && EDITS")
         lbl_tools.setObjectName("sidebar_header")
 
-        btn_crop = QPushButton("Crop Selection")
+        btn_crop = QPushButton("✂️  Crop Selection")
+        btn_crop.setToolTip("Click and drag on the image, then crop")
         btn_crop.clicked.connect(self.crop_image)
 
-        btn_flip_h = QPushButton("Flip Horizontal (Mirror)")
+        btn_flip_h = QPushButton("↔️  Flip Horizontal")
         btn_flip_h.clicked.connect(self.flip_horizontal)
 
-        btn_flip_v = QPushButton("Flip Vertical")
+        btn_flip_v = QPushButton("↕️  Flip Vertical")
         btn_flip_v.clicked.connect(self.flip_vertical)
 
         upscale_btn_layout = QHBoxLayout()
         upscale_btn_layout.setSpacing(8)
-        btn_upscale_2x = QPushButton("Upscale 2x")
+        btn_upscale_2x = QPushButton("⬆️ 2x")
+        btn_upscale_2x.setToolTip("Upscale image 2x")
         btn_upscale_2x.clicked.connect(self.upscale_2x)
-        btn_upscale_4x = QPushButton("Upscale 4x")
+        btn_upscale_4x = QPushButton("⬆️ 4x")
+        btn_upscale_4x.setToolTip("Upscale image 4x")
         btn_upscale_4x.clicked.connect(self.upscale_4x)
         upscale_btn_layout.addWidget(btn_upscale_2x)
         upscale_btn_layout.addWidget(btn_upscale_4x)
 
-        btn_enhance = QPushButton("Enhance Quality")
+        btn_enhance = QPushButton("✨  Enhance Quality")
+        btn_enhance.setToolTip("Boost sharpness, contrast, and detail")
         btn_enhance.clicked.connect(self.enhance_quality)
 
-        btn_grayscale = QPushButton("Grayscale")
+        btn_grayscale = QPushButton("🩶  Grayscale")
         btn_grayscale.clicked.connect(self.to_grayscale)
 
-        self.btn_remove_bg = QPushButton("Remove Background")
+        self.btn_remove_bg = QPushButton("🪄  Remove Background")
+        self.btn_remove_bg.setToolTip("AI background removal (bria-rmbg)")
         self.btn_remove_bg.clicked.connect(self.remove_background)
 
-        lbl_view = QLabel("VIEW & VIEWPORT")
+        lbl_view = QLabel("VIEW && VIEWPORT")
         lbl_view.setObjectName("sidebar_header")
 
         zoom_btn_layout = QHBoxLayout()
         zoom_btn_layout.setSpacing(8)
-        btn_zoom_in = QPushButton("+ Zoom In")
+        btn_zoom_in = QPushButton("🔍 +")
+        btn_zoom_in.setToolTip("Zoom in (or scroll up)")
         btn_zoom_in.clicked.connect(self.zoom_in)
-        btn_zoom_out = QPushButton("- Zoom Out")
+        btn_zoom_out = QPushButton("🔍 −")
+        btn_zoom_out.setToolTip("Zoom out (or scroll down)")
         btn_zoom_out.clicked.connect(self.zoom_out)
         zoom_btn_layout.addWidget(btn_zoom_in)
         zoom_btn_layout.addWidget(btn_zoom_out)
 
-        btn_zoom_reset = QPushButton("Reset Zoom (100%)")
+        btn_zoom_reset = QPushButton("⤢  Reset Zoom (100%)")
         btn_zoom_reset.clicked.connect(self.reset_zoom)
 
         lbl_history = QLabel("RESET")
         lbl_history.setObjectName("sidebar_header")
 
-        btn_reset = QPushButton("Reset Original")
+        btn_reset = QPushButton("↺  Reset to Original")
         btn_reset.setObjectName("btn_danger")
+        btn_reset.setToolTip("Discard all edits")
         btn_reset.clicked.connect(self.reset_image)
 
         self.info_label = QLabel("Dimension: -\nZoom: 100%")
         self.info_label.setObjectName("info_label")
+
+        sidebar_layout.addWidget(app_logo)
+        sidebar_layout.addWidget(app_subtitle)
+        sidebar_layout.addWidget(logo_divider)
 
         sidebar_layout.addWidget(lbl_file)
         sidebar_layout.addWidget(btn_open)
@@ -325,6 +495,8 @@ class PhotoEditor(QMainWindow):
         sidebar_layout.addWidget(self.info_label)
 
         self.canvas = ImageCanvas()
+        self.canvas.setObjectName("canvas")
+        self.canvas.setText("🖼️\n\nNo image loaded\n\nOpen an image to start editing\nDrag on the image to select a crop area")
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(False)
         self.scroll_area.setAlignment(Qt.AlignCenter)
@@ -332,6 +504,8 @@ class PhotoEditor(QMainWindow):
 
         main_layout.addWidget(sidebar)
         main_layout.addWidget(self.scroll_area)
+
+        self.statusBar().showMessage("Ready — no image loaded")
 
     def wheelEvent(self, event: QWheelEvent):
         if self.pil_image:
@@ -376,6 +550,7 @@ class PhotoEditor(QMainWindow):
             self.pil_image = self.original_image.copy()
             self.zoom_factor = 1.0
             self.update_display()
+            self.statusBar().showMessage(f"Opened: {os.path.basename(file_path)}")
 
     def crop_image(self):
         if not self.pil_image:
@@ -506,6 +681,7 @@ class PhotoEditor(QMainWindow):
         self.remove_bg_progress.setCancelButton(None)
         self.remove_bg_progress.setMinimumDuration(0)
         self.remove_bg_progress.show()
+        self.statusBar().showMessage("Removing background…")
 
         self.remove_bg_thread = RemoveBgThread(self.pil_image.copy())
 
@@ -513,10 +689,12 @@ class PhotoEditor(QMainWindow):
             self.remove_bg_progress.close()
             self.pil_image = result_img
             self.update_display()
+            self.statusBar().showMessage("Background removed ✓")
             QMessageBox.information(self, "Remove Background", "Background removed successfully!")
 
         def on_error(err_msg):
             self.remove_bg_progress.close()
+            self.statusBar().showMessage("Background removal failed")
             QMessageBox.critical(self, "Error", f"Failed to remove background: {err_msg}")
 
         def on_thread_finished():
@@ -558,6 +736,7 @@ class PhotoEditor(QMainWindow):
         )
         if file_path:
             self.pil_image.save(file_path)
+            self.statusBar().showMessage(f"Saved: {file_path}")
             QMessageBox.information(self, "Saved", f"Saved to {file_path}")
 
 
