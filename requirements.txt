@@ -1,4 +1,5 @@
 PySide6>=6.0.0
-Pillow>=10.0.0
+Pillow>=11.3.0
 rembg[cpu]>=2.0.0
+# WebM conversion also requires ffmpeg installed on the system (e.g. apt install ffmpeg)
 

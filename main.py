@@ -1,14 +1,19 @@
 import os
 import sys
+import shutil
+import subprocess
+import tempfile
 import traceback
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QFileDialog, QLabel, QMessageBox, QScrollArea, QFrame,
-    QProgressDialog
+    QProgressDialog, QInputDialog, QColorDialog, QSlider, QButtonGroup
 )
-from PySide6.QtGui import QPixmap, QImage, QPainter, QPen, QColor, QWheelEvent
+from PySide6.QtGui import (
+    QPixmap, QImage, QPainter, QPen, QColor, QWheelEvent, QAction
+)
 from PySide6.QtCore import Qt, QRect, QPoint, QThread, Signal
-from PIL import Image, ImageEnhance, ImageFilter
+from PIL import Image, ImageEnhance, ImageFilter, ImageDraw
 
 base_dir = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
 models_dir = os.path.join(base_dir, 'models')
@@ -69,9 +74,9 @@ QPushButton {
     background-color: #182338;
     color: #dbe4ff;
     border: 1px solid #26334f;
-    border-radius: 10px;
-    padding: 9px 14px;
-    font-size: 13px;
+    border-radius: 0px;
+    padding: 5px 8px;
+    font-size: 12px;
     font-weight: 500;
     text-align: left;
 }
@@ -86,6 +91,13 @@ QPushButton:pressed {
     border-color: #26334f;
 }
 
+QPushButton:checked {
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+        stop:0 #6366f1, stop:1 #4f46e5);
+    color: #ffffff;
+    border-color: #4338ca;
+}
+
 QPushButton:disabled {
     background-color: #131b2c;
     color: #4a5570;
@@ -96,8 +108,9 @@ QPushButton#btn_primary {
     background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
         stop:0 #6366f1, stop:1 #4f46e5);
     color: #ffffff;
-    border: none;
+    border: 1px solid #4338ca;
     font-weight: 600;
+    text-align: center;
 }
 
 QPushButton#btn_primary:hover {
@@ -113,8 +126,9 @@ QPushButton#btn_accent {
     background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
         stop:0 #22d3ee, stop:1 #0ea5e9);
     color: #03293d;
-    border: none;
+    border: 1px solid #0284c7;
     font-weight: 600;
+    text-align: center;
 }
 
 QPushButton#btn_accent:hover {
@@ -131,6 +145,7 @@ QPushButton#btn_danger {
     background-color: rgba(239, 68, 68, 0.12);
     color: #fca5a5;
     border: 1px solid rgba(239, 68, 68, 0.45);
+    text-align: center;
 }
 
 QPushButton#btn_danger:hover {
@@ -143,6 +158,91 @@ QPushButton#btn_danger:pressed {
     background-color: #991b1b;
     color: #ffffff;
 }
+
+/* ---------- Menu bar ---------- */
+
+QMenuBar {
+    background-color: #101828;
+    color: #dbe4ff;
+    border-bottom: 1px solid #1f2a44;
+    font-size: 12px;
+    padding: 2px;
+}
+
+QMenuBar::item {
+    background: transparent;
+    padding: 5px 12px;
+    border-radius: 0px;
+}
+
+QMenuBar::item:selected {
+    background-color: #22314f;
+}
+
+QMenuBar::item:pressed {
+    background-color: #141d31;
+}
+
+QMenu {
+    background-color: #101828;
+    color: #dbe4ff;
+    border: 1px solid #1f2a44;
+    padding: 2px;
+}
+
+QMenu::item {
+    padding: 5px 22px 5px 14px;
+    border-radius: 0px;
+}
+
+QMenu::item:selected {
+    background-color: #22314f;
+}
+
+QMenu::item:disabled {
+    color: #4a5570;
+}
+
+QMenu::separator {
+    height: 1px;
+    background: #1f2a44;
+    margin: 3px 6px;
+}
+
+/* ---------- Toolbar (CorelDRAW-like tool column) ---------- */
+
+QFrame#toolbar {
+    background-color: #0c1426;
+    border-right: 1px solid #1f2a44;
+}
+
+QFrame#toolbar QPushButton {
+    background-color: #131f36;
+    color: #dbe4ff;
+    border: 1px solid #1f2a44;
+    border-radius: 0px;
+    padding: 0px;
+    font-size: 11px;
+    font-weight: 600;
+    min-width: 40px;
+    max-width: 40px;
+    min-height: 34px;
+    max-height: 34px;
+    text-align: center;
+}
+
+QFrame#toolbar QPushButton:hover {
+    background-color: #22314f;
+    border-color: #3d5a99;
+}
+
+QFrame#toolbar QPushButton:checked {
+    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+        stop:0 #6366f1, stop:1 #4f46e5);
+    color: #ffffff;
+    border-color: #4338ca;
+}
+
 
 /* ---------- Canvas area ---------- */
 
@@ -256,6 +356,32 @@ QProgressBar::chunk {
     border-radius: 5px;
 }
 
+QSlider::groove:horizontal {
+    height: 6px;
+    background: #0c1426;
+    border: 1px solid #1f2a44;
+    border-radius: 3px;
+}
+
+QSlider::sub-page:horizontal {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #6366f1, stop:1 #22d3ee);
+    border-radius: 3px;
+}
+
+QSlider::handle:horizontal {
+    background: #dbe4ff;
+    border: 2px solid #6366f1;
+    width: 16px;
+    height: 16px;
+    margin: -6px 0;
+    border-radius: 9px;
+}
+
+QSlider::handle:horizontal:hover {
+    background: #ffffff;
+}
+
 QMessageBox {
     background-color: #101828;
     color: #dbe4ff;
@@ -304,6 +430,10 @@ class RemoveBgThread(QThread):
             self.error_signal.emit(traceback.format_exc())
 
 class ImageCanvas(QLabel):
+    draw_started = Signal(QPoint)
+    draw_moved = Signal(QPoint, QPoint)
+    draw_finished = Signal()
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAlignment(Qt.AlignCenter)
@@ -312,21 +442,43 @@ class ImageCanvas(QLabel):
         self.end_point = QPoint()
         self.is_selecting = False
         self.crop_rect = QRect()
+        self.tool = "select"
+        self.is_drawing = False
+        self.last_draw_point = QPoint()
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton and self.pixmap() and not self.pixmap().isNull():
-            self.start_point = event.position().toPoint()
-            self.end_point = self.start_point
-            self.is_selecting = True
-            self.crop_rect = QRect()
-            self.update()
+        if event.button() != Qt.LeftButton or not self.pixmap() or self.pixmap().isNull():
+            return
+
+        if self.tool in ("brush", "eraser"):
+            self.is_drawing = True
+            self.last_draw_point = event.position().toPoint()
+            self.draw_started.emit(self.last_draw_point)
+            return
+
+        self.start_point = event.position().toPoint()
+        self.end_point = self.start_point
+        self.is_selecting = True
+        self.crop_rect = QRect()
+        self.update()
 
     def mouseMoveEvent(self, event):
+        if self.is_drawing:
+            current = event.position().toPoint()
+            self.draw_moved.emit(self.last_draw_point, current)
+            self.last_draw_point = current
+            return
+
         if self.is_selecting:
             self.end_point = event.position().toPoint()
             self.update()
 
     def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton and self.is_drawing:
+            self.is_drawing = False
+            self.draw_finished.emit()
+            return
+
         if event.button() == Qt.LeftButton and self.is_selecting:
             self.end_point = event.position().toPoint()
             self.is_selecting = False
@@ -353,6 +505,13 @@ class ImageCanvas(QLabel):
         self.update()
 
 class PhotoEditor(QMainWindow):
+    SAVE_OPTIONS = {
+        "PNG": {"optimize": True},
+        "JPEG": {"quality": 95, "optimize": True},
+        "WEBP": {"quality": 92, "method": 6},
+        "AVIF": {"quality": 75},
+    }
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PictEd — Photo Editor")
@@ -361,31 +520,48 @@ class PhotoEditor(QMainWindow):
 
         self.pil_image = None
         self.original_image = None
+        self.current_path = None
+        self.last_dir = None
         self.zoom_factor = 1.0
+        self.tool = "select"
+        self.brush_color = QColor("#ff3b30")
+        self.brush_size = 20
         self.remove_bg_thread = None
         self.remove_bg_progress = None
 
         self.init_ui()
 
     def init_ui(self):
+        self._create_menu_bar()
+
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         main_layout = QHBoxLayout(main_widget)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
+        # ---- Thin tool column (CorelDRAW-like) ----
+        toolbar = QFrame()
+        toolbar.setObjectName("toolbar")
+        toolbar.setFixedWidth(52)
+        toolbar_layout = QVBoxLayout(toolbar)
+        toolbar_layout.setAlignment(Qt.AlignTop)
+        toolbar_layout.setContentsMargins(6, 6, 6, 6)
+        toolbar_layout.setSpacing(0)
+
+        # ---- Properties sidebar ----
         sidebar = QFrame()
         sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(280)
+        sidebar.setFixedWidth(200)
         sidebar_layout = QVBoxLayout(sidebar)
         sidebar_layout.setAlignment(Qt.AlignTop)
-        sidebar_layout.setContentsMargins(16, 16, 16, 16)
-        sidebar_layout.setSpacing(8)
+        sidebar_layout.setContentsMargins(10, 10, 10, 10)
+        sidebar_layout.setSpacing(0)
 
-        app_logo = QLabel("🎨 PictEd")
+        app_logo = QLabel("PictEd")
         app_logo.setObjectName("app_logo")
 
-        app_subtitle = QLabel("Simple AI-powered photo editor")
+        app_subtitle = QLabel("Properties")
         app_subtitle.setObjectName("app_subtitle")
 
         logo_divider = QFrame()
@@ -394,12 +570,12 @@ class PhotoEditor(QMainWindow):
         lbl_file = QLabel("FILE")
         lbl_file.setObjectName("sidebar_header")
 
-        btn_open = QPushButton("📂  Open Image")
+        btn_open = QPushButton("Open Image")
         btn_open.setObjectName("btn_primary")
-        btn_open.setToolTip("Open an image file (PNG, JPG, BMP, WebP)")
+        btn_open.setToolTip("Open an image file (PNG, JPG, BMP, WebP, AVIF)")
         btn_open.clicked.connect(self.open_image)
 
-        btn_save = QPushButton("💾  Save Image")
+        btn_save = QPushButton("Save Image")
         btn_save.setObjectName("btn_accent")
         btn_save.setToolTip("Save the edited image")
         btn_save.clicked.connect(self.save_image)
@@ -407,59 +583,125 @@ class PhotoEditor(QMainWindow):
         lbl_tools = QLabel("TOOLS && EDITS")
         lbl_tools.setObjectName("sidebar_header")
 
-        btn_crop = QPushButton("✂️  Crop Selection")
+        btn_crop = QPushButton("Crop Selection")
         btn_crop.setToolTip("Click and drag on the image, then crop")
         btn_crop.clicked.connect(self.crop_image)
 
-        btn_flip_h = QPushButton("↔️  Flip Horizontal")
+        btn_flip_h = QPushButton("Flip Horizontal")
         btn_flip_h.clicked.connect(self.flip_horizontal)
 
-        btn_flip_v = QPushButton("↕️  Flip Vertical")
+        btn_flip_v = QPushButton("Flip Vertical")
         btn_flip_v.clicked.connect(self.flip_vertical)
 
         upscale_btn_layout = QHBoxLayout()
-        upscale_btn_layout.setSpacing(8)
-        btn_upscale_2x = QPushButton("⬆️ 2x")
+        upscale_btn_layout.setSpacing(0)
+        btn_upscale_2x = QPushButton("Upscale 2x")
         btn_upscale_2x.setToolTip("Upscale image 2x")
         btn_upscale_2x.clicked.connect(self.upscale_2x)
-        btn_upscale_4x = QPushButton("⬆️ 4x")
+        btn_upscale_4x = QPushButton("Upscale 4x")
         btn_upscale_4x.setToolTip("Upscale image 4x")
         btn_upscale_4x.clicked.connect(self.upscale_4x)
         upscale_btn_layout.addWidget(btn_upscale_2x)
         upscale_btn_layout.addWidget(btn_upscale_4x)
 
-        btn_enhance = QPushButton("✨  Enhance Quality")
+        btn_enhance = QPushButton("Enhance Quality")
         btn_enhance.setToolTip("Boost sharpness, contrast, and detail")
         btn_enhance.clicked.connect(self.enhance_quality)
 
-        btn_grayscale = QPushButton("🩶  Grayscale")
+        btn_grayscale = QPushButton("Grayscale")
         btn_grayscale.clicked.connect(self.to_grayscale)
 
-        self.btn_remove_bg = QPushButton("🪄  Remove Background")
+        self.btn_remove_bg = QPushButton("Remove Background")
         self.btn_remove_bg.setToolTip("AI background removal (bria-rmbg)")
         self.btn_remove_bg.clicked.connect(self.remove_background)
+
+        lbl_convert = QLabel("CONVERT FORMAT")
+        lbl_convert.setObjectName("sidebar_header")
+
+        btn_convert_png = QPushButton("to PNG")
+        btn_convert_png.setToolTip("Export current image as PNG (lossless, keeps alpha)")
+        btn_convert_png.clicked.connect(lambda: self.convert_format("PNG"))
+
+        btn_convert_webp = QPushButton("to WebP")
+        btn_convert_webp.setToolTip("Export current image as WebP (quality 92, keeps alpha)")
+        btn_convert_webp.clicked.connect(lambda: self.convert_format("WEBP"))
+
+        btn_convert_avif = QPushButton("to AVIF")
+        btn_convert_avif.setToolTip("Export current image as AVIF (quality 75, keeps alpha)")
+        btn_convert_avif.clicked.connect(lambda: self.convert_format("AVIF"))
+
+        btn_convert_webm = QPushButton("to WebM")
+        btn_convert_webm.setToolTip("Render image as a short VP9 WebM video (requires ffmpeg)")
+        btn_convert_webm.clicked.connect(self.convert_to_webm)
+
+        convert_row1 = QHBoxLayout()
+        convert_row1.setSpacing(0)
+        convert_row1.addWidget(btn_convert_png)
+        convert_row1.addWidget(btn_convert_webp)
+        convert_row2 = QHBoxLayout()
+        convert_row2.setSpacing(0)
+        convert_row2.addWidget(btn_convert_avif)
+        convert_row2.addWidget(btn_convert_webm)
+
+        lbl_paint = QLabel("PAINT && ERASE")
+        lbl_paint.setObjectName("sidebar_header")
+
+
+        self.btn_brush = QPushButton("Brush")
+        self.btn_brush.setCheckable(True)
+        self.btn_brush.setToolTip("Brush — paint with the selected color and size")
+        self.btn_brush.clicked.connect(lambda: self.set_tool("brush"))
+
+        self.btn_eraser = QPushButton("Erase")
+        self.btn_eraser.setCheckable(True)
+        self.btn_eraser.setToolTip("Eraser — erase parts of the image (becomes transparent)")
+        self.btn_eraser.clicked.connect(lambda: self.set_tool("eraser"))
+
+        self.btn_select_tool = QPushButton("Sel")
+        self.btn_select_tool.setCheckable(True)
+        self.btn_select_tool.setChecked(True)
+        self.btn_select_tool.setToolTip("Select / Crop — drag on the image to select an area")
+        self.btn_select_tool.clicked.connect(lambda: self.set_tool("select"))
+
+        self.tool_group = QButtonGroup(self)
+        self.tool_group.setExclusive(True)
+        for tool_btn in (self.btn_select_tool, self.btn_brush, self.btn_eraser):
+            self.tool_group.addButton(tool_btn)
+
+        self.btn_brush_color = QPushButton()
+        self.btn_brush_color.setToolTip("Pick the brush color")
+        self.btn_brush_color.clicked.connect(self.set_brush_color)
+
+        self.brush_size_slider = QSlider(Qt.Horizontal)
+        self.brush_size_slider.setRange(1, 200)
+        self.brush_size_slider.setValue(self.brush_size)
+        self.brush_size_slider.setToolTip("Brush / eraser size in image pixels")
+        self.brush_size_slider.valueChanged.connect(self.set_brush_size)
+
+        self.size_label = QLabel(f"Brush size: {self.brush_size} px")
+        self.size_label.setObjectName("info_label")
 
         lbl_view = QLabel("VIEW && VIEWPORT")
         lbl_view.setObjectName("sidebar_header")
 
         zoom_btn_layout = QHBoxLayout()
-        zoom_btn_layout.setSpacing(8)
-        btn_zoom_in = QPushButton("🔍 +")
+        zoom_btn_layout.setSpacing(0)
+        btn_zoom_in = QPushButton("Zoom In")
         btn_zoom_in.setToolTip("Zoom in (or scroll up)")
         btn_zoom_in.clicked.connect(self.zoom_in)
-        btn_zoom_out = QPushButton("🔍 −")
+        btn_zoom_out = QPushButton("Zoom Out")
         btn_zoom_out.setToolTip("Zoom out (or scroll down)")
         btn_zoom_out.clicked.connect(self.zoom_out)
         zoom_btn_layout.addWidget(btn_zoom_in)
         zoom_btn_layout.addWidget(btn_zoom_out)
 
-        btn_zoom_reset = QPushButton("⤢  Reset Zoom (100%)")
+        btn_zoom_reset = QPushButton("Reset Zoom (100%)")
         btn_zoom_reset.clicked.connect(self.reset_zoom)
 
         lbl_history = QLabel("RESET")
         lbl_history.setObjectName("sidebar_header")
 
-        btn_reset = QPushButton("↺  Reset to Original")
+        btn_reset = QPushButton("Reset to Original")
         btn_reset.setObjectName("btn_danger")
         btn_reset.setToolTip("Discard all edits")
         btn_reset.clicked.connect(self.reset_image)
@@ -484,6 +726,15 @@ class PhotoEditor(QMainWindow):
         sidebar_layout.addWidget(btn_grayscale)
         sidebar_layout.addWidget(self.btn_remove_bg)
 
+        sidebar_layout.addWidget(lbl_convert)
+        sidebar_layout.addLayout(convert_row1)
+        sidebar_layout.addLayout(convert_row2)
+
+        sidebar_layout.addWidget(lbl_paint)
+        sidebar_layout.addWidget(self.btn_brush_color)
+        sidebar_layout.addWidget(self.brush_size_slider)
+        sidebar_layout.addWidget(self.size_label)
+
         sidebar_layout.addWidget(lbl_view)
         sidebar_layout.addLayout(zoom_btn_layout)
         sidebar_layout.addWidget(btn_zoom_reset)
@@ -491,21 +742,106 @@ class PhotoEditor(QMainWindow):
         sidebar_layout.addWidget(lbl_history)
         sidebar_layout.addWidget(btn_reset)
 
-        sidebar_layout.addSpacing(16)
+        sidebar_layout.addSpacing(12)
         sidebar_layout.addWidget(self.info_label)
+
+        # Tool column buttons (CorelDRAW-style square toolbox)
+        toolbar_layout.addWidget(self.btn_select_tool)
+        toolbar_layout.addWidget(self.btn_brush)
+        toolbar_layout.addWidget(self.btn_eraser)
+
 
         self.canvas = ImageCanvas()
         self.canvas.setObjectName("canvas")
-        self.canvas.setText("🖼️\n\nNo image loaded\n\nOpen an image to start editing\nDrag on the image to select a crop area")
+        self.canvas.setText("No image loaded\n\nOpen an image to start editing\nDrag on the image to select a crop area")
+        self.canvas.draw_started.connect(self.on_draw_started)
+        self.canvas.draw_moved.connect(self.on_draw_moved)
+        self.canvas.draw_finished.connect(self.on_draw_finished)
+        self._refresh_brush_color_button()
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(False)
         self.scroll_area.setAlignment(Qt.AlignCenter)
         self.scroll_area.setWidget(self.canvas)
 
-        main_layout.addWidget(sidebar)
+        main_layout.addWidget(toolbar)
         main_layout.addWidget(self.scroll_area)
+        main_layout.addWidget(sidebar)
 
         self.statusBar().showMessage("Ready — no image loaded")
+
+    def _create_menu_bar(self):
+        menu_bar = self.menuBar()
+
+        file_menu = menu_bar.addMenu("File")
+        act_open = QAction("Open Image...", self)
+        act_open.setShortcut("Ctrl+O")
+        act_open.triggered.connect(self.open_image)
+        act_save = QAction("Save Image...", self)
+        act_save.setShortcut("Ctrl+S")
+        act_save.triggered.connect(self.save_image)
+        file_menu.addAction(act_open)
+        file_menu.addAction(act_save)
+        file_menu.addSeparator()
+
+        convert_menu = file_menu.addMenu("Convert To")
+        for label, fmt in (("PNG", "PNG"), ("WebP", "WEBP"), ("AVIF", "AVIF")):
+            act = QAction(label, self)
+            act.triggered.connect(lambda checked=False, f=fmt: self.convert_format(f))
+            convert_menu.addAction(act)
+        act_webm = QAction("WebM (video)", self)
+        act_webm.triggered.connect(self.convert_to_webm)
+        convert_menu.addAction(act_webm)
+
+        file_menu.addSeparator()
+        act_quit = QAction("Quit", self)
+        act_quit.setShortcut("Ctrl+Q")
+        act_quit.triggered.connect(self.close)
+        file_menu.addAction(act_quit)
+
+        edit_menu = menu_bar.addMenu("Edit")
+        act_crop = QAction("Crop Selection", self)
+        act_crop.triggered.connect(self.crop_image)
+        act_flip_h = QAction("Flip Horizontal", self)
+        act_flip_h.triggered.connect(self.flip_horizontal)
+        act_flip_v = QAction("Flip Vertical", self)
+        act_flip_v.triggered.connect(self.flip_vertical)
+        act_gray = QAction("Grayscale", self)
+        act_gray.triggered.connect(self.to_grayscale)
+        act_enhance = QAction("Enhance Quality", self)
+        act_enhance.triggered.connect(self.enhance_quality)
+        act_rembg = QAction("Remove Background", self)
+        act_rembg.triggered.connect(self.remove_background)
+        for act in (act_crop, act_flip_h, act_flip_v):
+            edit_menu.addAction(act)
+        edit_menu.addSeparator()
+        edit_menu.addAction(act_enhance)
+        edit_menu.addAction(act_gray)
+        edit_menu.addAction(act_rembg)
+        edit_menu.addSeparator()
+        act_up2 = QAction("Upscale 2x", self)
+        act_up2.triggered.connect(self.upscale_2x)
+        act_up4 = QAction("Upscale 4x", self)
+        act_up4.triggered.connect(self.upscale_4x)
+        edit_menu.addAction(act_up2)
+        edit_menu.addAction(act_up4)
+        edit_menu.addSeparator()
+        act_reset = QAction("Reset to Original", self)
+        act_reset.triggered.connect(self.reset_image)
+        edit_menu.addAction(act_reset)
+
+        view_menu = menu_bar.addMenu("View")
+        act_zin = QAction("Zoom In", self)
+        act_zin.setShortcut("Ctrl++")
+        act_zin.triggered.connect(self.zoom_in)
+        act_zout = QAction("Zoom Out", self)
+        act_zout.setShortcut("Ctrl+-")
+        act_zout.triggered.connect(self.zoom_out)
+        act_zreset = QAction("Reset Zoom (100%)", self)
+        act_zreset.setShortcut("Ctrl+0")
+        act_zreset.triggered.connect(self.reset_zoom)
+        view_menu.addAction(act_zin)
+        view_menu.addAction(act_zout)
+        view_menu.addAction(act_zreset)
 
     def wheelEvent(self, event: QWheelEvent):
         if self.pil_image:
@@ -541,12 +877,24 @@ class PhotoEditor(QMainWindow):
         self.canvas.setFixedSize(disp_w, disp_h)
         self.canvas.reset_selection()
 
+    def _default_save_path(self, ext: str) -> str:
+        """Default save location: same directory the image was opened from."""
+        stem = os.path.splitext(os.path.basename(self.current_path))[0] if self.current_path else "output"
+        directory = self.last_dir or os.getcwd()
+        return os.path.join(directory, f"{stem}.{ext}")
+
     def open_image(self):
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "Open Image", "", "Images (*.png *.jpg *.jpeg *.bmp *.webp)"
+            self, "Open Image", self.last_dir or "", "Images (*.png *.jpg *.jpeg *.bmp *.webp *.avif)"
         )
         if file_path:
-            self.original_image = Image.open(file_path).convert("RGB")
+            try:
+                self.original_image = Image.open(file_path).convert("RGB")
+            except Exception as exc:
+                QMessageBox.critical(self, "Error", f"Failed to open image:\n{exc}")
+                return
+            self.current_path = file_path
+            self.last_dir = os.path.dirname(os.path.abspath(file_path))
             self.pil_image = self.original_image.copy()
             self.zoom_factor = 1.0
             self.update_display()
@@ -664,6 +1012,100 @@ class PhotoEditor(QMainWindow):
         self.pil_image = self.pil_image.convert("L").convert("RGB")
         self.update_display()
 
+    def set_tool(self, tool: str):
+        self.tool = tool
+        self.canvas.tool = tool
+        if tool == "select":
+            self.canvas.setCursor(Qt.ArrowCursor)
+            self.statusBar().showMessage("Tool: select / crop")
+        else:
+            self.canvas.setCursor(Qt.CrossCursor)
+            self.statusBar().showMessage(f"Tool: {tool} — {self.brush_size} px — drag on the image")
+
+    def _refresh_brush_color_button(self):
+        text_color = "#06121f" if self.brush_color.lightness() > 128 else "#ffffff"
+        self.btn_brush_color.setStyleSheet(
+            f"QPushButton {{ background-color: {self.brush_color.name()}; "
+            f"color: {text_color}; border: 1px solid #3d5a99; }}"
+        )
+        self.btn_brush_color.setText(f"Color {self.brush_color.name().upper()}")
+
+    def set_brush_color(self):
+        color = QColorDialog.getColor(self.brush_color, self, "Brush Color")
+        if not color.isValid():
+            return
+        self.brush_color = color
+        self._refresh_brush_color_button()
+
+    def set_brush_size(self, value):
+        self.brush_size = int(value)
+        self.size_label.setText(f"Brush size: {self.brush_size} px")
+
+    def _handle_draw(self, start: QPoint, end: QPoint):
+        pixmap = self.canvas.pixmap()
+        if not pixmap or pixmap.isNull():
+            return
+
+        scale = self.pil_image.width / pixmap.width()
+        p1 = (int(start.x() * scale), int(start.y() * scale))
+        p2 = (int(end.x() * scale), int(end.y() * scale))
+        width = max(1, int(self.brush_size))
+
+        if self.tool == "eraser":
+            if self.pil_image.mode != "RGBA":
+                self.pil_image = self.pil_image.convert("RGBA")
+            color = (0, 0, 0, 0)
+        else:
+            color = (*self.brush_color.getRgb()[:3], 255)
+
+        draw = ImageDraw.Draw(self.pil_image)
+        if p1 == p2:
+            r = width / 2
+            draw.ellipse((p1[0] - r, p1[1] - r, p1[0] + r, p1[1] + r), fill=color)
+        else:
+            draw.line((p1, p2), fill=color, width=width, joint="curve")
+
+        self._paint_canvas_preview(start, end)
+
+    def _paint_canvas_preview(self, start: QPoint, end: QPoint):
+        pixmap = self.canvas.pixmap()
+        if not pixmap or pixmap.isNull():
+            return
+
+        painter = QPainter(pixmap)
+        painter.setRenderHint(QPainter.Antialiasing, True)
+        width = max(1, int(round(self.brush_size * self.zoom_factor)))
+        pen = QPen(self.brush_color, width, Qt.SolidLine, Qt.RoundCap, Qt.RoundJoin)
+        if self.tool == "eraser":
+            painter.setCompositionMode(QPainter.CompositionMode_Clear)
+            pen.setColor(QColor(0, 0, 0, 0))
+        painter.setPen(pen)
+        if start == end:
+            painter.drawPoint(start)
+        else:
+            painter.drawLine(start, end)
+        painter.end()
+        self.canvas.setPixmap(pixmap)
+
+    def on_draw_started(self, point: QPoint):
+        if not self.pil_image:
+            return
+        self._handle_draw(point, point)
+
+    def on_draw_moved(self, start: QPoint, end: QPoint):
+        if not self.pil_image:
+            return
+        self._handle_draw(start, end)
+
+    def on_draw_finished(self):
+        if not self.pil_image:
+            return
+        self.update_display()
+        if self.tool == "eraser":
+            self.statusBar().showMessage(f"Erased ({self.brush_size} px) — area is now transparent")
+        else:
+            self.statusBar().showMessage(f"Painted with brush ({self.brush_size} px)")
+
     def remove_background(self):
         if not self.pil_image:
             QMessageBox.warning(self, "Warning", "No image loaded!")
@@ -726,18 +1168,154 @@ class PhotoEditor(QMainWindow):
         self.pil_image = self.original_image.copy()
         self.update_display()
 
+    def _prepare_for_save(self, fmt: str) -> Image.Image:
+        """Return an image with a mode suitable for the target format."""
+        img = self.pil_image
+        has_alpha = img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info)
+        if fmt in ("PNG", "WEBP", "AVIF"):
+            return img.convert("RGBA") if has_alpha else img.convert("RGB")
+        if has_alpha:
+            rgba = img.convert("RGBA")
+            background = Image.new("RGB", rgba.size, (255, 255, 255))
+            background.paste(rgba, mask=rgba.split()[-1])
+            return background
+        return img.convert("RGB")
+
+    @staticmethod
+    def _resolve_save_format(file_path: str, selected_filter: str = ""):
+        """Pick a Pillow format from the file extension, or the dialog filter."""
+        mapping = {".png": "PNG", ".jpg": "JPEG", ".jpeg": "JPEG", ".webp": "WEBP", ".avif": "AVIF"}
+        fmt = mapping.get(os.path.splitext(file_path)[1].lower())
+        if fmt is None:
+            fmt = "JPEG" if "JPEG" in selected_filter.upper() else "PNG"
+            file_path += ".jpg" if fmt == "JPEG" else ".png"
+        return fmt, file_path
+
+    def convert_format(self, fmt: str):
+        if not self.pil_image:
+            QMessageBox.warning(self, "Warning", "No image loaded!")
+            return
+
+        fmt = fmt.upper()
+        ext = {"PNG": "png", "WEBP": "webp", "AVIF": "avif"}.get(fmt, fmt.lower())
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, f"Convert to {fmt}", self._default_save_path(ext), f"{fmt} (*.{ext})"
+        )
+        if not file_path:
+            return
+        if not file_path.lower().endswith(f".{ext}"):
+            file_path = f"{file_path}.{ext}"
+
+        try:
+            img = self._prepare_for_save(fmt)
+            img.save(file_path, format=fmt, **self.SAVE_OPTIONS.get(fmt, {}))
+        except Exception as exc:
+            QMessageBox.critical(self, "Conversion Failed", f"Cannot convert to {fmt}:\n{exc}")
+            self.statusBar().showMessage(f"{fmt} conversion failed")
+            return
+
+        size_kb = os.path.getsize(file_path) / 1024
+        self.statusBar().showMessage(f"Converted to {fmt}: {file_path}")
+        QMessageBox.information(self, "Converted", f"Saved {fmt} ({size_kb:.1f} KB)\n{file_path}")
+
+    def convert_to_webm(self):
+        if not self.pil_image:
+            QMessageBox.warning(self, "Warning", "No image loaded!")
+            return
+
+        ffmpeg_path = shutil.which("ffmpeg")
+        if not ffmpeg_path:
+            QMessageBox.critical(
+                self, "ffmpeg Not Found",
+                "ffmpeg is required to create WebM videos.\n"
+                "Install it (e.g. sudo apt install ffmpeg) and try again."
+            )
+            return
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, "Convert to WebM", self._default_save_path("webm"), "WebM video (*.webm)"
+        )
+        if not file_path:
+            return
+        if not file_path.lower().endswith(".webm"):
+            file_path = f"{file_path}.webm"
+
+        duration, ok = QInputDialog.getInt(
+            self, "WebM Duration", "Video length (seconds):", 5, 1, 60, 1
+        )
+        if not ok:
+            return
+
+        frame = self.pil_image.convert("RGB")
+        w, h = frame.size
+        even_w, even_h = w - (w % 2), h - (h % 2)
+        if even_w != w or even_h != h:
+            # yuv420p requires even dimensions
+            frame = frame.crop((0, 0, even_w, even_h))
+
+        tmp_dir = tempfile.mkdtemp(prefix="picted_webm_")
+        frame_path = os.path.join(tmp_dir, "frame.png")
+        error_msg = None
+
+        QApplication.setOverrideCursor(Qt.WaitCursor)
+        self.statusBar().showMessage("Rendering WebM video…")
+        try:
+            frame.save(frame_path, format="PNG")
+            cmd = [
+                ffmpeg_path, "-y", "-loop", "1", "-i", frame_path,
+                "-t", str(duration), "-r", "30",
+                "-c:v", "libvpx-vp9", "-pix_fmt", "yuv420p",
+                "-b:v", "0", "-crf", "32", "-an", file_path,
+            ]
+            proc = subprocess.run(cmd, capture_output=True, text=True)
+            if proc.returncode != 0:
+                stderr_lines = (proc.stderr or "").strip().splitlines()
+                error_msg = stderr_lines[-1] if stderr_lines else "ffmpeg failed"
+        except Exception as exc:
+            error_msg = str(exc)
+        finally:
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            QApplication.restoreOverrideCursor()
+
+        if error_msg or not os.path.exists(file_path):
+            QMessageBox.critical(
+                self, "Conversion Failed",
+                f"Cannot create WebM:\n{error_msg or 'unknown ffmpeg error'}"
+            )
+            self.statusBar().showMessage("WebM conversion failed")
+            return
+
+        size_mb = os.path.getsize(file_path) / (1024 * 1024)
+        self.statusBar().showMessage(f"Converted to WebM: {file_path}")
+        QMessageBox.information(
+            self, "Converted",
+            f"Saved WebM video ({duration}s, {size_mb:.2f} MB)\n{file_path}"
+        )
+
     def save_image(self):
         if not self.pil_image:
             QMessageBox.warning(self, "Warning", "No image loaded!")
             return
 
-        file_path, _ = QFileDialog.getSaveFileName(
-            self, "Save Image", "output.png", "PNG (*.png);;JPEG (*.jpg *.jpeg)"
+        file_path, selected_filter = QFileDialog.getSaveFileName(
+            self, "Save Image", self._default_save_path("png"),
+            "PNG (*.png);;JPEG (*.jpg *.jpeg);;WebP (*.webp);;AVIF (*.avif)"
         )
-        if file_path:
-            self.pil_image.save(file_path)
-            self.statusBar().showMessage(f"Saved: {file_path}")
-            QMessageBox.information(self, "Saved", f"Saved to {file_path}")
+        if not file_path:
+            return
+
+        try:
+            fmt, file_path = self._resolve_save_format(file_path, selected_filter)
+            img = self._prepare_for_save(fmt)
+            img.save(file_path, format=fmt, **self.SAVE_OPTIONS.get(fmt, {}))
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", f"Failed to save image:\n{exc}")
+            self.statusBar().showMessage("Save failed")
+            return
+
+        self.statusBar().showMessage(f"Saved: {file_path}")
+        QMessageBox.information(self, "Saved", f"Saved to {file_path}")
 
 
 if __name__ == "__main__":
