@@ -279,13 +279,13 @@ QScrollBar:vertical {
 }
 
 QScrollBar::handle:vertical {
-    background: #26334f;
+    background: #2a3a5c;
     border-radius: 4px;
     min-height: 30px;
 }
 
 QScrollBar::handle:vertical:hover {
-    background: #3b4a6b;
+    background: #4260a3;
 }
 
 QScrollBar:horizontal {
@@ -295,13 +295,13 @@ QScrollBar:horizontal {
 }
 
 QScrollBar::handle:horizontal {
-    background: #26334f;
+    background: #2a3a5c;
     border-radius: 4px;
     min-width: 30px;
 }
 
 QScrollBar::handle:horizontal:hover {
-    background: #3b4a6b;
+    background: #4260a3;
 }
 
 QScrollBar::add-line, QScrollBar::sub-line {
@@ -318,19 +318,19 @@ QScrollBar::add-page, QScrollBar::sub-page {
 QLabel#info_label {
     font-family: 'JetBrains Mono', 'Consolas', monospace;
     font-size: 11px;
-    color: #8ea2c9;
-    background-color: #0c1426;
-    border: 1px solid #1f2a44;
+    color: #93a6cd;
+    background-color: #0b1120;
+    border: 1px solid #1e2a45;
     border-radius: 10px;
-    padding: 10px;
+    padding: 12px;
 }
 
 QStatusBar {
-    background-color: #101828;
+    background-color: #0f1626;
     color: #6b7a9d;
-    border-top: 1px solid #1f2a44;
+    border-top: 1px solid #1e2a45;
     font-size: 11px;
-    padding: 2px 8px;
+    padding: 3px 10px;
 }
 
 QStatusBar::item {
@@ -553,20 +553,20 @@ class PhotoEditor(QMainWindow):
         # ---- Thin tool column (CorelDRAW-like) ----
         toolbar = QFrame()
         toolbar.setObjectName("toolbar")
-        toolbar.setFixedWidth(52)
+        toolbar.setFixedWidth(56)
         toolbar_layout = QVBoxLayout(toolbar)
         toolbar_layout.setAlignment(Qt.AlignTop)
-        toolbar_layout.setContentsMargins(6, 6, 6, 6)
+        toolbar_layout.setContentsMargins(8, 10, 8, 10)
         toolbar_layout.setSpacing(0)
 
         # ---- Properties sidebar ----
         sidebar = QFrame()
         sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(200)
+        sidebar.setFixedWidth(210)
         sidebar_layout = QVBoxLayout(sidebar)
         sidebar_layout.setAlignment(Qt.AlignTop)
-        sidebar_layout.setContentsMargins(10, 10, 10, 10)
-        sidebar_layout.setSpacing(0)
+        sidebar_layout.setContentsMargins(12, 12, 12, 12)
+        sidebar_layout.setSpacing(6)
 
         app_logo = QLabel("PictEd")
         app_logo.setObjectName("app_logo")
@@ -604,7 +604,7 @@ class PhotoEditor(QMainWindow):
         btn_flip_v.clicked.connect(self.flip_vertical)
 
         upscale_btn_layout = QHBoxLayout()
-        upscale_btn_layout.setSpacing(0)
+        upscale_btn_layout.setSpacing(6)
         btn_upscale_2x = QPushButton("Upscale 2x")
         btn_upscale_2x.setToolTip("Upscale image 2x")
         btn_upscale_2x.clicked.connect(self.upscale_2x)
@@ -645,11 +645,11 @@ class PhotoEditor(QMainWindow):
         btn_convert_webm.clicked.connect(self.convert_to_webm)
 
         convert_row1 = QHBoxLayout()
-        convert_row1.setSpacing(0)
+        convert_row1.setSpacing(6)
         convert_row1.addWidget(btn_convert_png)
         convert_row1.addWidget(btn_convert_webp)
         convert_row2 = QHBoxLayout()
-        convert_row2.setSpacing(0)
+        convert_row2.setSpacing(6)
         convert_row2.addWidget(btn_convert_avif)
         convert_row2.addWidget(btn_convert_webm)
 
@@ -695,7 +695,7 @@ class PhotoEditor(QMainWindow):
         lbl_view.setObjectName("sidebar_header")
 
         zoom_btn_layout = QHBoxLayout()
-        zoom_btn_layout.setSpacing(0)
+        zoom_btn_layout.setSpacing(6)
         btn_zoom_in = QPushButton("Zoom In")
         btn_zoom_in.setToolTip("Zoom in (or scroll up)")
         btn_zoom_in.clicked.connect(self.zoom_in)
