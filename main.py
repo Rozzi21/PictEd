@@ -7,7 +7,8 @@ import traceback
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QFileDialog, QLabel, QMessageBox, QScrollArea, QFrame,
-    QProgressDialog, QInputDialog, QColorDialog, QSlider, QButtonGroup
+    QProgressDialog, QInputDialog, QColorDialog, QSlider, QButtonGroup,
+    QToolButton, QSizePolicy
 )
 from PySide6.QtGui import (
     QPixmap, QImage, QPainter, QPen, QColor, QWheelEvent, QAction
@@ -25,38 +26,38 @@ from rembg import new_session, remove
 
 STYLESHEET = """
 QMainWindow {
-    background-color: #090d1a;
+    background-color: #111315;
 }
 
 QWidget {
-    font-family: 'Segoe UI', 'Inter', sans-serif;
-    color: #e2e8f8;
+    font-family: 'Segoe UI', sans-serif;
+    color: #e6e8e7;
     font-size: 13px;
 }
 
 /* ---------- Sidebar ---------- */
 
 QFrame#sidebar {
-    background-color: #0f1626;
-    border-left: 1px solid #1e2a45;
+    background-color: #191c1e;
+    border-left: 1px solid #303537;
 }
 
 QLabel#app_logo {
-    font-size: 23px;
+    font-size: 22px;
     font-weight: 800;
-    color: #ffffff;
-    letter-spacing: 0.5px;
+    color: #f2f4f3;
+    letter-spacing: 1px;
 }
 
 QLabel#app_subtitle {
     font-size: 11px;
-    color: #6b7a9d;
+    color: #87918f;
     margin-bottom: 2px;
     letter-spacing: 0.5px;
 }
 
 QFrame#divider {
-    background-color: #1e2a45;
+    background-color: #303537;
     max-height: 1px;
     margin: 8px 0px;
 }
@@ -64,7 +65,7 @@ QFrame#divider {
 QLabel#sidebar_header {
     font-size: 10px;
     font-weight: 700;
-    color: #6d80ac;
+    color: #8b9694;
     letter-spacing: 2.5px;
     margin-top: 16px;
     margin-bottom: 4px;
@@ -73,31 +74,30 @@ QLabel#sidebar_header {
 /* ---------- Buttons ---------- */
 
 QPushButton {
-    background-color: #1a2740;
-    color: #dbe4ff;
-    border: 1px solid #2a3a5c;
-    border-radius: 8px;
-    padding: 9px 12px;
+    background-color: #252a2c;
+    color: #dfe4e2;
+    border: 1px solid #3b4244;
+    border-radius: 6px;
+    padding: 8px 11px;
     font-size: 12px;
     font-weight: 500;
     text-align: left;
 }
 
 QPushButton:hover {
-    background-color: #24365a;
-    border-color: #4260a3;
+    background-color: #303739;
+    border-color: #697573;
 }
 
 QPushButton:pressed {
-    background-color: #16233a;
-    border-color: #2a3a5c;
+    background-color: #1c2021;
+    border-color: #53605d;
 }
 
 QPushButton:checked {
-    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-        stop:0 #6366f1, stop:1 #4f46e5);
+    background-color: #2c7774;
     color: #ffffff;
-    border-color: #4338ca;
+    border-color: #55aaa0;
 }
 
 QPushButton:disabled {
@@ -107,43 +107,39 @@ QPushButton:disabled {
 }
 
 QPushButton#btn_primary {
-    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-        stop:0 #6366f1, stop:1 #4f46e5);
+    background-color: #2d7773;
     color: #ffffff;
-    border: 1px solid #4338ca;
-    border-radius: 8px;
+    border: 1px solid #4da69d;
+    border-radius: 6px;
     font-weight: 600;
     padding: 10px 12px;
     text-align: center;
 }
 
 QPushButton#btn_primary:hover {
-    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-        stop:0 #818cf8, stop:1 #6366f1);
+    background-color: #378e88;
 }
 
 QPushButton#btn_primary:pressed {
-    background-color: #4338ca;
+    background-color: #215d5a;
 }
 
 QPushButton#btn_accent {
-    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-        stop:0 #22d3ee, stop:1 #0ea5e9);
-    color: #03293d;
-    border: 1px solid #0284c7;
-    border-radius: 8px;
+    background-color: #d7a34f;
+    color: #21190d;
+    border: 1px solid #efc16e;
+    border-radius: 6px;
     font-weight: 600;
     padding: 10px 12px;
     text-align: center;
 }
 
 QPushButton#btn_accent:hover {
-    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-        stop:0 #67e8f9, stop:1 #38bdf8);
+    background-color: #e5b563;
 }
 
 QPushButton#btn_accent:pressed {
-    background-color: #0284c7;
+    background-color: #a6762d;
     color: #ffffff;
 }
 
@@ -170,9 +166,9 @@ QPushButton#btn_danger:pressed {
 /* ---------- Menu bar ---------- */
 
 QMenuBar {
-    background-color: #0f1626;
-    color: #dbe4ff;
-    border-bottom: 1px solid #1e2a45;
+    background-color: #191c1e;
+    color: #dfe4e2;
+    border-bottom: 1px solid #303537;
     font-size: 12px;
     padding: 3px 4px;
 }
@@ -192,9 +188,9 @@ QMenuBar::item:pressed {
 }
 
 QMenu {
-    background-color: #0f1626;
+    background-color: #202426;
     color: #dbe4ff;
-    border: 1px solid #1e2a45;
+    border: 1px solid #3b4244;
     border-radius: 8px;
     padding: 5px;
 }
@@ -221,15 +217,15 @@ QMenu::separator {
 /* ---------- Toolbar (CorelDRAW-like tool column) ---------- */
 
 QFrame#toolbar {
-    background-color: #0b1120;
-    border-right: 1px solid #1e2a45;
+    background-color: #17191a;
+    border-right: 1px solid #303537;
 }
 
 QFrame#toolbar QPushButton {
-    background-color: #16233a;
+    background-color: #222728;
     color: #dbe4ff;
-    border: 1px solid #1e2a45;
-    border-radius: 9px;
+    border: 1px solid #363d3e;
+    border-radius: 7px;
     padding: 0px;
     font-size: 11px;
     font-weight: 600;
@@ -247,26 +243,42 @@ QFrame#toolbar QPushButton:hover {
 }
 
 QFrame#toolbar QPushButton:checked {
-    background-color: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-        stop:0 #6366f1, stop:1 #4f46e5);
+    background-color: #2d7773;
     color: #ffffff;
-    border-color: #4338ca;
+    border-color: #55aaa0;
+}
+
+QFrame#context_bar {
+    background-color: #191c1e;
+    border-bottom: 1px solid #303537;
+}
+
+QLabel#workspace_label {
+    color: #b8c2bf;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+QLabel#context_hint {
+    color: #727d7a;
+    font-size: 11px;
 }
 
 
 /* ---------- Canvas area ---------- */
 
 QScrollArea {
-    background-color: #060a14;
+    background-color: #0d0f10;
     border: none;
 }
 
 QScrollArea > QWidget > QWidget {
-    background-color: #060a14;
+    background-color: #0d0f10;
 }
 
 QLabel#canvas {
-    color: #3d4a68;
+    color: #7b8583;
     font-size: 15px;
 }
 
@@ -318,17 +330,17 @@ QScrollBar::add-page, QScrollBar::sub-page {
 QLabel#info_label {
     font-family: 'JetBrains Mono', 'Consolas', monospace;
     font-size: 11px;
-    color: #93a6cd;
-    background-color: #0b1120;
-    border: 1px solid #1e2a45;
+    color: #9da9a5;
+    background-color: #141718;
+    border: 1px solid #303637;
     border-radius: 10px;
     padding: 12px;
 }
 
 QStatusBar {
-    background-color: #0f1626;
-    color: #6b7a9d;
-    border-top: 1px solid #1e2a45;
+    background-color: #191c1e;
+    color: #87918f;
+    border-top: 1px solid #303537;
     font-size: 11px;
     padding: 3px 10px;
 }
@@ -562,11 +574,11 @@ class PhotoEditor(QMainWindow):
         # ---- Properties sidebar ----
         sidebar = QFrame()
         sidebar.setObjectName("sidebar")
-        sidebar.setFixedWidth(210)
+        sidebar.setFixedWidth(252)
         sidebar_layout = QVBoxLayout(sidebar)
         sidebar_layout.setAlignment(Qt.AlignTop)
-        sidebar_layout.setContentsMargins(12, 12, 12, 12)
-        sidebar_layout.setSpacing(6)
+        sidebar_layout.setContentsMargins(16, 14, 16, 14)
+        sidebar_layout.setSpacing(7)
 
         app_logo = QLabel("PictEd")
         app_logo.setObjectName("app_logo")
@@ -657,17 +669,17 @@ class PhotoEditor(QMainWindow):
         lbl_paint.setObjectName("sidebar_header")
 
 
-        self.btn_brush = QPushButton("Brush")
+        self.btn_brush = QPushButton("✎")
         self.btn_brush.setCheckable(True)
         self.btn_brush.setToolTip("Brush — paint with the selected color and size")
         self.btn_brush.clicked.connect(lambda: self.set_tool("brush"))
 
-        self.btn_eraser = QPushButton("Erase")
+        self.btn_eraser = QPushButton("⌫")
         self.btn_eraser.setCheckable(True)
         self.btn_eraser.setToolTip("Eraser — erase parts of the image (becomes transparent)")
         self.btn_eraser.clicked.connect(lambda: self.set_tool("eraser"))
 
-        self.btn_select_tool = QPushButton("Sel")
+        self.btn_select_tool = QPushButton("↖")
         self.btn_select_tool.setCheckable(True)
         self.btn_select_tool.setChecked(True)
         self.btn_select_tool.setToolTip("Select / Crop — drag on the image to select an area")
@@ -763,18 +775,41 @@ class PhotoEditor(QMainWindow):
 
         self.canvas = ImageCanvas()
         self.canvas.setObjectName("canvas")
-        self.canvas.setText("No image loaded\n\nOpen an image to start editing\nDrag on the image to select a crop area")
+        self.canvas.setText("DROP IMAGE TO START\n\nOpen Image  ·  Ctrl+O\nDrag canvas to select crop area")
         self.canvas.draw_started.connect(self.on_draw_started)
         self.canvas.draw_moved.connect(self.on_draw_moved)
         self.canvas.draw_finished.connect(self.on_draw_finished)
         self._refresh_brush_color_button()
+        self.btn_brush_color.setFixedHeight(30)
+        self.btn_brush_color.setStyleSheet(
+            "QPushButton { background: #ff3b30; border: 2px solid #596360; }"
+        )
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(False)
         self.scroll_area.setAlignment(Qt.AlignCenter)
         self.scroll_area.setWidget(self.canvas)
 
+        workspace = QWidget()
+        workspace_layout = QVBoxLayout(workspace)
+        workspace_layout.setContentsMargins(0, 0, 0, 0)
+        workspace_layout.setSpacing(0)
+        context_bar = QFrame()
+        context_bar.setObjectName("context_bar")
+        context_layout = QHBoxLayout(context_bar)
+        context_layout.setContentsMargins(16, 9, 16, 9)
+        context_layout.setSpacing(10)
+        workspace_label = QLabel("WORKSPACE")
+        workspace_label.setObjectName("workspace_label")
+        context_layout.addWidget(workspace_label)
+        context_layout.addStretch()
+        hint = QLabel("Scroll to zoom  ·  Space + drag to pan")
+        hint.setObjectName("context_hint")
+        context_layout.addWidget(hint)
+        workspace_layout.addWidget(context_bar)
+        workspace_layout.addWidget(self.scroll_area)
+
         main_layout.addWidget(toolbar)
-        main_layout.addWidget(self.scroll_area)
+        main_layout.addWidget(workspace)
         main_layout.addWidget(sidebar)
 
         self.statusBar().showMessage("Ready — no image loaded")
@@ -1335,4 +1370,3 @@ if __name__ == "__main__":
     window = PhotoEditor()
     window.show()
     sys.exit(app.exec())
-
