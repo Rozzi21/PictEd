@@ -248,6 +248,40 @@ QFrame#toolbar QPushButton:checked {
     border-color: #55aaa0;
 }
 
+QFrame#toolbar QPushButton#btn_danger {
+    background-color: rgba(239, 68, 68, 0.12);
+    color: #fca5a5;
+    border: 1px solid rgba(239, 68, 68, 0.45);
+}
+
+QFrame#toolbar QPushButton#btn_danger:hover {
+    background-color: rgba(239, 68, 68, 0.28);
+    color: #fecaca;
+    border-color: #ef4444;
+}
+
+QFrame#toolbar QPushButton#tool_text {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+QFrame#toolbar QScrollArea {
+    background: transparent;
+    border: none;
+}
+
+QFrame#toolbar QScrollArea > QWidget > QWidget {
+    background: transparent;
+}
+
+QFrame#tool_divider {
+    background-color: #303537;
+    min-height: 1px;
+    max-height: 1px;
+    margin: 6px 4px;
+}
+
 QFrame#context_bar {
     background-color: #191c1e;
     border-bottom: 1px solid #303537;
@@ -553,6 +587,21 @@ class PhotoEditor(QMainWindow):
 
         self.init_ui()
 
+    def _make_tool_button(self, text, tooltip, callback=None, checkable=False, object_name=None):
+        btn = QPushButton(text)
+        btn.setToolTip(tooltip)
+        btn.setCheckable(checkable)
+        if object_name:
+            btn.setObjectName(object_name)
+        if callback:
+            btn.clicked.connect(callback)
+        return btn
+
+    def _tool_divider(self):
+        d = QFrame()
+        d.setObjectName("tool_divider")
+        return d
+
     def init_ui(self):
         self._create_menu_bar()
 
@@ -562,16 +611,91 @@ class PhotoEditor(QMainWindow):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # ---- Thin tool column (CorelDRAW-like) ----
+        # ---- Icon tool column (left) ----
         toolbar = QFrame()
         toolbar.setObjectName("toolbar")
         toolbar.setFixedWidth(56)
-        toolbar_layout = QVBoxLayout(toolbar)
+        toolbar_outer = QVBoxLayout(toolbar)
+        toolbar_outer.setContentsMargins(0, 0, 0, 0)
+        toolbar_outer.setSpacing(0)
+
+        tool_scroll = QScrollArea()
+        tool_scroll.setWidgetResizable(True)
+        tool_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        tool_scroll.setFrameShape(QFrame.NoFrame)
+
+        tool_inner = QWidget()
+        toolbar_layout = QVBoxLayout(tool_inner)
         toolbar_layout.setAlignment(Qt.AlignTop)
         toolbar_layout.setContentsMargins(8, 10, 8, 10)
         toolbar_layout.setSpacing(0)
+        tool_scroll.setWidget(tool_inner)
+        toolbar_outer.addWidget(tool_scroll)
 
-        # ---- Properties sidebar ----
+        # Selection / paint tools (exclusive group)
+        self.btn_select_tool = self._make_tool_button(
+            "↖", "Select / Crop — drag on the image to select an area",
+            lambda: self.set_tool("select"), checkable=True)
+        self.btn_select_tool.setChecked(True)
+        self.btn_brush = self._make_tool_button(
+            "✎", "Brush — paint with the selected color and size",
+            lambda: self.set_tool("brush"), checkable=True)
+        self.btn_eraser = self._make_tool_button(
+            "⌫", "Eraser — erase parts of the image (becomes transparent)",
+            lambda: self.set_tool("eraser"), checkable=True)
+
+        self.tool_group = QButtonGroup(self)
+        self.tool_group.setExclusive(True)
+        for tool_btn in (self.btn_select_tool, self.btn_brush, self.btn_eraser):
+            self.tool_group.addButton(tool_btn)
+            toolbar_layout.addWidget(tool_btn)
+
+        toolbar_layout.addWidget(self._tool_divider())
+
+        # Transform / edit tools
+        btn_crop = self._make_tool_button("◲", "Crop the selected area", self.crop_image)
+        btn_flip_h = self._make_tool_button("↔", "Flip Horizontal", self.flip_horizontal)
+        btn_flip_v = self._make_tool_button("↕", "Flip Vertical", self.flip_vertical)
+        btn_upscale_2x = self._make_tool_button("2×", "Upscale image 2x", self.upscale_2x)
+        btn_upscale_4x = self._make_tool_button("4×", "Upscale image 4x", self.upscale_4x)
+        btn_enhance = self._make_tool_button("✦", "Enhance sharpness, contrast, and detail", self.enhance_quality)
+        btn_grayscale = self._make_tool_button("◐", "Grayscale", self.to_grayscale)
+        self.btn_remove_bg = self._make_tool_button("✂", "AI background removal (bria-rmbg)", self.remove_background)
+        for b in (btn_crop, btn_flip_h, btn_flip_v, btn_upscale_2x,
+                  btn_upscale_4x, btn_enhance, btn_grayscale, self.btn_remove_bg):
+            toolbar_layout.addWidget(b)
+
+        toolbar_layout.addWidget(self._tool_divider())
+
+        # Convert format tools
+        btn_convert_png = self._make_tool_button("PNG", "Export as PNG (lossless, keeps alpha)",
+                                                 lambda: self.convert_format("PNG"), object_name="tool_text")
+        btn_convert_webp = self._make_tool_button("WEBP", "Export as WebP (quality 92, keeps alpha)",
+                                                  lambda: self.convert_format("WEBP"), object_name="tool_text")
+        btn_convert_avif = self._make_tool_button("AVIF", "Export as AVIF (quality 75, keeps alpha)",
+                                                  lambda: self.convert_format("AVIF"), object_name="tool_text")
+        btn_convert_webm = self._make_tool_button("WEBM", "Render as short VP9 WebM video (requires ffmpeg)",
+                                                  self.convert_to_webm, object_name="tool_text")
+        for b in (btn_convert_png, btn_convert_webp, btn_convert_avif, btn_convert_webm):
+            toolbar_layout.addWidget(b)
+
+        toolbar_layout.addWidget(self._tool_divider())
+
+        # View tools
+        btn_zoom_in = self._make_tool_button("＋", "Zoom in (or scroll up)", self.zoom_in)
+        btn_zoom_out = self._make_tool_button("－", "Zoom out (or scroll down)", self.zoom_out)
+        btn_zoom_reset = self._make_tool_button("⊙", "Reset zoom to 100%", self.reset_zoom)
+        for b in (btn_zoom_in, btn_zoom_out, btn_zoom_reset):
+            toolbar_layout.addWidget(b)
+
+        toolbar_layout.addWidget(self._tool_divider())
+
+        # Reset
+        btn_reset = self._make_tool_button("↺", "Reset to original — discard all edits",
+                                           self.reset_image, object_name="btn_danger")
+        toolbar_layout.addWidget(btn_reset)
+
+        # ---- Properties sidebar (right): file + pen only ----
         sidebar = QFrame()
         sidebar.setObjectName("sidebar")
         sidebar.setFixedWidth(252)
@@ -602,93 +726,8 @@ class PhotoEditor(QMainWindow):
         btn_save.setToolTip("Save the edited image")
         btn_save.clicked.connect(self.save_image)
 
-        lbl_tools = QLabel("TOOLS && EDITS")
-        lbl_tools.setObjectName("sidebar_header")
-
-        btn_crop = QPushButton("Crop Selection")
-        btn_crop.setToolTip("Click and drag on the image, then crop")
-        btn_crop.clicked.connect(self.crop_image)
-
-        btn_flip_h = QPushButton("Flip Horizontal")
-        btn_flip_h.clicked.connect(self.flip_horizontal)
-
-        btn_flip_v = QPushButton("Flip Vertical")
-        btn_flip_v.clicked.connect(self.flip_vertical)
-
-        upscale_btn_layout = QHBoxLayout()
-        upscale_btn_layout.setSpacing(6)
-        btn_upscale_2x = QPushButton("Upscale 2x")
-        btn_upscale_2x.setToolTip("Upscale image 2x")
-        btn_upscale_2x.clicked.connect(self.upscale_2x)
-        btn_upscale_4x = QPushButton("Upscale 4x")
-        btn_upscale_4x.setToolTip("Upscale image 4x")
-        btn_upscale_4x.clicked.connect(self.upscale_4x)
-        upscale_btn_layout.addWidget(btn_upscale_2x)
-        upscale_btn_layout.addWidget(btn_upscale_4x)
-
-        btn_enhance = QPushButton("Enhance Quality")
-        btn_enhance.setToolTip("Boost sharpness, contrast, and detail")
-        btn_enhance.clicked.connect(self.enhance_quality)
-
-        btn_grayscale = QPushButton("Grayscale")
-        btn_grayscale.clicked.connect(self.to_grayscale)
-
-        self.btn_remove_bg = QPushButton("Remove Background")
-        self.btn_remove_bg.setToolTip("AI background removal (bria-rmbg)")
-        self.btn_remove_bg.clicked.connect(self.remove_background)
-
-        lbl_convert = QLabel("CONVERT FORMAT")
-        lbl_convert.setObjectName("sidebar_header")
-
-        btn_convert_png = QPushButton("to PNG")
-        btn_convert_png.setToolTip("Export current image as PNG (lossless, keeps alpha)")
-        btn_convert_png.clicked.connect(lambda: self.convert_format("PNG"))
-
-        btn_convert_webp = QPushButton("to WebP")
-        btn_convert_webp.setToolTip("Export current image as WebP (quality 92, keeps alpha)")
-        btn_convert_webp.clicked.connect(lambda: self.convert_format("WEBP"))
-
-        btn_convert_avif = QPushButton("to AVIF")
-        btn_convert_avif.setToolTip("Export current image as AVIF (quality 75, keeps alpha)")
-        btn_convert_avif.clicked.connect(lambda: self.convert_format("AVIF"))
-
-        btn_convert_webm = QPushButton("to WebM")
-        btn_convert_webm.setToolTip("Render image as a short VP9 WebM video (requires ffmpeg)")
-        btn_convert_webm.clicked.connect(self.convert_to_webm)
-
-        convert_row1 = QHBoxLayout()
-        convert_row1.setSpacing(6)
-        convert_row1.addWidget(btn_convert_png)
-        convert_row1.addWidget(btn_convert_webp)
-        convert_row2 = QHBoxLayout()
-        convert_row2.setSpacing(6)
-        convert_row2.addWidget(btn_convert_avif)
-        convert_row2.addWidget(btn_convert_webm)
-
-        lbl_paint = QLabel("PAINT && ERASE")
+        lbl_paint = QLabel("PEN PROPERTIES")
         lbl_paint.setObjectName("sidebar_header")
-
-
-        self.btn_brush = QPushButton("✎")
-        self.btn_brush.setCheckable(True)
-        self.btn_brush.setToolTip("Brush — paint with the selected color and size")
-        self.btn_brush.clicked.connect(lambda: self.set_tool("brush"))
-
-        self.btn_eraser = QPushButton("⌫")
-        self.btn_eraser.setCheckable(True)
-        self.btn_eraser.setToolTip("Eraser — erase parts of the image (becomes transparent)")
-        self.btn_eraser.clicked.connect(lambda: self.set_tool("eraser"))
-
-        self.btn_select_tool = QPushButton("↖")
-        self.btn_select_tool.setCheckable(True)
-        self.btn_select_tool.setChecked(True)
-        self.btn_select_tool.setToolTip("Select / Crop — drag on the image to select an area")
-        self.btn_select_tool.clicked.connect(lambda: self.set_tool("select"))
-
-        self.tool_group = QButtonGroup(self)
-        self.tool_group.setExclusive(True)
-        for tool_btn in (self.btn_select_tool, self.btn_brush, self.btn_eraser):
-            self.tool_group.addButton(tool_btn)
 
         self.btn_brush_color = QPushButton()
         self.btn_brush_color.setToolTip("Pick the brush color")
@@ -703,31 +742,6 @@ class PhotoEditor(QMainWindow):
         self.size_label = QLabel(f"Brush size: {self.brush_size} px")
         self.size_label.setObjectName("info_label")
 
-        lbl_view = QLabel("VIEW && VIEWPORT")
-        lbl_view.setObjectName("sidebar_header")
-
-        zoom_btn_layout = QHBoxLayout()
-        zoom_btn_layout.setSpacing(6)
-        btn_zoom_in = QPushButton("Zoom In")
-        btn_zoom_in.setToolTip("Zoom in (or scroll up)")
-        btn_zoom_in.clicked.connect(self.zoom_in)
-        btn_zoom_out = QPushButton("Zoom Out")
-        btn_zoom_out.setToolTip("Zoom out (or scroll down)")
-        btn_zoom_out.clicked.connect(self.zoom_out)
-        zoom_btn_layout.addWidget(btn_zoom_in)
-        zoom_btn_layout.addWidget(btn_zoom_out)
-
-        btn_zoom_reset = QPushButton("Reset Zoom (100%)")
-        btn_zoom_reset.clicked.connect(self.reset_zoom)
-
-        lbl_history = QLabel("RESET")
-        lbl_history.setObjectName("sidebar_header")
-
-        btn_reset = QPushButton("Reset to Original")
-        btn_reset.setObjectName("btn_danger")
-        btn_reset.setToolTip("Discard all edits")
-        btn_reset.clicked.connect(self.reset_image)
-
         self.info_label = QLabel("Dimension: -\nZoom: 100%")
         self.info_label.setObjectName("info_label")
 
@@ -739,39 +753,13 @@ class PhotoEditor(QMainWindow):
         sidebar_layout.addWidget(btn_open)
         sidebar_layout.addWidget(btn_save)
 
-        sidebar_layout.addWidget(lbl_tools)
-        sidebar_layout.addWidget(btn_crop)
-        sidebar_layout.addWidget(btn_flip_h)
-        sidebar_layout.addWidget(btn_flip_v)
-        sidebar_layout.addLayout(upscale_btn_layout)
-        sidebar_layout.addWidget(btn_enhance)
-        sidebar_layout.addWidget(btn_grayscale)
-        sidebar_layout.addWidget(self.btn_remove_bg)
-
-        sidebar_layout.addWidget(lbl_convert)
-        sidebar_layout.addLayout(convert_row1)
-        sidebar_layout.addLayout(convert_row2)
-
         sidebar_layout.addWidget(lbl_paint)
         sidebar_layout.addWidget(self.btn_brush_color)
         sidebar_layout.addWidget(self.brush_size_slider)
         sidebar_layout.addWidget(self.size_label)
 
-        sidebar_layout.addWidget(lbl_view)
-        sidebar_layout.addLayout(zoom_btn_layout)
-        sidebar_layout.addWidget(btn_zoom_reset)
-
-        sidebar_layout.addWidget(lbl_history)
-        sidebar_layout.addWidget(btn_reset)
-
         sidebar_layout.addSpacing(12)
         sidebar_layout.addWidget(self.info_label)
-
-        # Tool column buttons (CorelDRAW-style square toolbox)
-        toolbar_layout.addWidget(self.btn_select_tool)
-        toolbar_layout.addWidget(self.btn_brush)
-        toolbar_layout.addWidget(self.btn_eraser)
-
 
         self.canvas = ImageCanvas()
         self.canvas.setObjectName("canvas")
@@ -781,9 +769,6 @@ class PhotoEditor(QMainWindow):
         self.canvas.draw_finished.connect(self.on_draw_finished)
         self._refresh_brush_color_button()
         self.btn_brush_color.setFixedHeight(30)
-        self.btn_brush_color.setStyleSheet(
-            "QPushButton { background: #ff3b30; border: 2px solid #596360; }"
-        )
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(False)
         self.scroll_area.setAlignment(Qt.AlignCenter)
@@ -1370,3 +1355,4 @@ if __name__ == "__main__":
     window = PhotoEditor()
     window.show()
     sys.exit(app.exec())
+
